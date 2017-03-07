@@ -2,3 +2,8 @@
 *.pyc
 .*
 *.nii
+gco_python-master/build/
+gco_python-master/gco-v3.0.zip
+gco_python-master/gco_python.cpp
+gco_python-master/gco_src/
+gco_python-master/pygco.so
