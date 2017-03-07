@@ -24,6 +24,7 @@ import skimage.segmentation as segment
 import skimage.filters as filt
 import math
 import sklearn.metrics as metric
+import nibabel as nib
 
 def command_iteration(method):
     print("{0:3} = {1:10.5f} : {2}".format(method.GetOptimizerIteration(),
@@ -240,7 +241,7 @@ def selectCorrectBP(bp,endo,nearbySeg,idx):
     if(np.sum(bpMask)>np.sum(nearbySeg) and idx<0):
         # Initial BP oversegmented
         bpMask = np.copy(bpMask2)
-    
+    print('')
     return bpMask
     
 
@@ -336,10 +337,9 @@ execTime = np.zeros(16)
 #timeFile = open('time.csv','wb')
 #wTime = csv.writer(timeFile,delimiter=',',quoting=csv.QUOTE_NONE)
 
-# ind = [0,3,6,7,8,9]
+# indices = [0,3,6,7,8,9]
 
-for ind in indices:#[1:2]:
-    # ind = 5
+for ind in indices:
     numOfIterations = ()
     startTime = time.time()
     fileName = 'rawData'+str(ind)+'.mat'
@@ -487,7 +487,7 @@ for ind in indices:#[1:2]:
         vol = fixedImg[:,:,idx].astype(int)
         volFlt = filt.median(fixedImg[:,:,idx]/fixedImg[:,:,idx].max(),skmorph.disk(3))
         volFlt = func.normalizeSlices(volFlt,0,100)
-        gt = fixedGT[:,:,idx]
+        # gt = fixedGT[:,:,idx]
         bgInt = []
         bpInt = []
 
@@ -517,7 +517,7 @@ for ind in indices:#[1:2]:
         ROI = skmorph.remove_small_objects(ROI,min_size=20,connectivity=1)
 
         # Select large endo ROI for basal slices
-        if(idx>0):
+        if(idx>=0):
             endo = probBP>0.01
         else:
             endo = probBP>ROIthresh
@@ -601,22 +601,21 @@ for ind in indices:#[1:2]:
                 # func.displayMontage(LL)
 
                 # as we convert to int, we need to multipy to get sensible values
-                # unaries = np.stack([LL, -LL],axis=-1).copy("C").astype(np.int32)
                 unaries = np.stack([unariesLLS, unariesLLT],axis=-1).copy("C").astype(np.int32)
                 # create potts pairwise
                 pairwise = -np.eye(2, dtype=np.int32)
                 
-                # use the gerneral graph algorithm
+                # use the general graph algorithm
                 # first, we construct the grid graph
                 inds = np.arange(vol.size).reshape(vol.shape)
                 horz = np.c_[inds[:,:-1].ravel(), inds[:,1:].ravel()]   # horizontal edges
                 vert = np.c_[inds[:-1,:].ravel(), inds[1:,:].ravel()]   # vertical edges
                 # depth = np.c_[inds[:,:,:-1].ravel(), inds[:,:,1:].ravel()]  # slice edges
                 edges = np.vstack([horz, vert]).astype(np.int32)
-                # eWeight1 = 5*(np.absolute(vol.ravel()[edges[:,0]]-vol.ravel()[edges[:,1]]).reshape(edges.shape[0],1))
-                # eWeight2 = 10*(atlasGT.ravel()[edges[:,0]]+atlasGT.ravel()[edges[:,1]]).reshape(edges.shape[0],1)
-                eWeight1 = 20*np.exp(-(255-np.absolute(vol.ravel()[edges[:, 0]]-vol.ravel()[edges[:,1]]))/255.0).reshape(edges.shape[0],1)
-                eWeight2 = 100*np.exp(-10.0*(atlasGT.ravel()[edges[:,0]]+atlasGT.ravel()[edges[:,1]])).reshape(edges.shape[0],1)
+                # eWeight1 = 50*(np.absolute(vol.ravel()[edges[:,0]]-vol.ravel()[edges[:,1]]).reshape(edges.shape[0],1))
+                # eWeight2 = 100*(atlasGT.ravel()[edges[:,0]]+atlasGT.ravel()[edges[:,1]]).reshape(edges.shape[0],1)
+                eWeight1 = 50*np.exp(-(255-np.absolute(vol.ravel()[edges[:, 0]]-vol.ravel()[edges[:,1]]))/255.0).reshape(edges.shape[0],1)
+                eWeight2 = 500*np.exp(-10.0*(atlasGT.ravel()[edges[:,0]]+atlasGT.ravel()[edges[:,1]])).reshape(edges.shape[0],1)
                 # edges = np.hstack((edges,eWeight1)).astype(np.int32)
                 # edges = np.hstack((edges,eWeight2)).astype(np.int32)
                 edges = np.hstack((edges, eWeight1 + eWeight2)).astype(np.int32)
@@ -634,6 +633,7 @@ for ind in indices:#[1:2]:
                 padSegBP = skmorph.closing(padSegBP,skmorph.disk(r))
                 segBP = padSegBP[r:-r,r:-r]
                 # func.displayMontageRGB(vol,255*segBP)
+                # print('Here')
 
                 # If the BP area for apical slice higher than nearby basal slice, adjust the threshold
                 if(np.sum(segBP)>np.sum(bpVol[:,:,nearbySlice]) and idx<0):
@@ -654,8 +654,8 @@ for ind in indices:#[1:2]:
                 # func.displayMontage(extraSeg)
                 # func.displayMontageRGB(255*segBP,255*endo)
 
-                if(idx<=0 and np.sum(extraSeg)>0.1*np.sum(segBP)):
-                    # If apical slices oversegmented
+                if (np.sum(extraSeg) > 0.05 * np.sum(segBP)):
+                    # If slices oversegmented
                     if(itr==1):
                         # If first iteration, reinitialize bp segment using threshGMM
                         threshGMM = findThreshGMM(endoVol,endo)
@@ -676,7 +676,7 @@ for ind in indices:#[1:2]:
                 # func.displayMontageRGB(vol,255*segRaw,5)
 
                 (_,_,_,_,dice,_) = func.evalMetrics(segBP,segBPOld,np.ones(segBP.shape))
-                if(dice<0.5):
+                if(dice<0.5 and np.sum(segBP)>np.sum(segBPOld)):
                     # RV expanded to LV or outside, stop iteration
                     print("LARGE BP EXPANSION!!!")
                     segBP = np.copy(segBPOld)
@@ -757,20 +757,30 @@ for ind in indices:#[1:2]:
     # Perform fourier smoothing
     bpVolSmooth = np.zeros(fixedImg.shape)
     for i in range(fixedImg.shape[2]):
-        bpVolSmooth[:,:,i] = func.fourierSmoothing(bpVol[:,:,i],8)
+        try:
+            bpVolSmooth[:,:,i] = func.fourierSmoothing(bpVol[:,:,i],8)
+        except:
+            continue
 
     func.displayMontageRGB(fixedImg,255*bpVol,3)
     func.displayMontageRGB(fixedImg,255*bpVolSmooth,3)
     # func.displayMontageRGB(255*fixedGT,255*bpVol,3)
     # func.displayMontageRGB(fixedImg,255*bpProb,5)
     # func.displayMontageRGB(fixedImg,255*bpProbOriginal,5)
-    # func.displayMontageRGB(fixedImg,255*myoVol,5)
-    # func.displayMontageRGB(fixedImg,255*(myoVolOriginal>128),5)
-    # func.displayMontageRGB(fixedGT,255*myoVol,5)
-    # func.displayMontageRGB(fixedGT,255*bpVolRaw,5)
     # func.displayMontageRGB(fixedImg,fixedGT,5)
-print('')
+    print('')
 
+    # # Save image as Nifti
+    # scalingArray = np.eye(4)
+    # scalingArray[0,0] = spacingFixed[0]
+    # scalingArray[1,1] = spacingFixed[1]
+    # scalingArray[2,2] = spacingFixed[2]
+    # niftiSegmented = nib.Nifti1Image(bpVolSmooth,scalingArray)
+    # nib.save(niftiSegmented, 'SegmentedVolume.nii')
+    # niftiGroundTruth = nib.Nifti1Image(fixedGT,scalingArray)
+    # nib.save(niftiGroundTruth, 'GroundTruth.nii')
+    # niftiVolume = nib.Nifti1Image(fixedImg,scalingArray)
+    # nib.save(niftiVolume, 'Volume.nii')
 
 ################# Compute the results #########################################
     # Moving Volume

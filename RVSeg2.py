@@ -439,18 +439,18 @@ execTime = np.zeros(16)
 # not so good patients: 97,86,64,36,35,33,31,29,28,27,22,20,16,9
 #indices = [12,17,18,26,52]
 
-diceFile = open('dice.csv','wb')
-wDice = csv.writer(diceFile,delimiter=',',quoting=csv.QUOTE_NONE)
-jaccardFile = open('jaccard.csv','wb')
-wJaccard = csv.writer(jaccardFile,delimiter=',',quoting=csv.QUOTE_NONE)
-madFile = open('mad.csv','wb')
-wMad = csv.writer(madFile,delimiter=',',quoting=csv.QUOTE_NONE)
-hdFile = open('hd.csv','wb')
-wHd = csv.writer(hdFile,delimiter=',',quoting=csv.QUOTE_NONE)
-itrFile = open('itr.csv','wb')
-wItr = csv.writer(itrFile,delimiter=',',quoting=csv.QUOTE_NONE)
-timeFile = open('time.csv','wb')
-wTime = csv.writer(timeFile,delimiter=',',quoting=csv.QUOTE_NONE)
+# diceFile = open('dice.csv','wb')
+# wDice = csv.writer(diceFile,delimiter=',',quoting=csv.QUOTE_NONE)
+# jaccardFile = open('jaccard.csv','wb')
+# wJaccard = csv.writer(jaccardFile,delimiter=',',quoting=csv.QUOTE_NONE)
+# madFile = open('mad.csv','wb')
+# wMad = csv.writer(madFile,delimiter=',',quoting=csv.QUOTE_NONE)
+# hdFile = open('hd.csv','wb')
+# wHd = csv.writer(hdFile,delimiter=',',quoting=csv.QUOTE_NONE)
+# itrFile = open('itr.csv','wb')
+# wItr = csv.writer(itrFile,delimiter=',',quoting=csv.QUOTE_NONE)
+# timeFile = open('time.csv','wb')
+# wTime = csv.writer(timeFile,delimiter=',',quoting=csv.QUOTE_NONE)
 
 # ind = [0,3,6,7,8,9]
 
@@ -1003,6 +1003,7 @@ for ind in indices[1:2]:
 #    func.displayMontageRGB(fixedGT,255*myoVol,5)
 #    func.displayMontageRGB(fixedGT,255*bpVolRaw,5)
 #    func.displayMontageRGB(fixedImg,fixedGT,5)
+    print('')
 
 
 ################# Compute the results #########################################
