@@ -4,8 +4,6 @@ Created on Fri Dec 18 10:16:53 2015
 
 @author: Shusil Dangi
 
-Import multi-dimensional images in the vtk file format
- 
 """
 from vtk import *
 import numpy as np
@@ -107,7 +105,6 @@ def fourierSmoothing(seg,harmonics=5):
     edgeImg = segment.find_boundaries(seg.astype(int),mode='outer')
     ind = np.nonzero(seg)
     cX,cY = np.mean(ind[0]),np.mean(ind[1])
-#    segMyo[int(cX),int(cY)] = 0
     indEdge = np.nonzero(edgeImg)
     r,phi = cart2Pol(indEdge[0]-cX,indEdge[1]-cY)
     indSort = np.argsort(phi)
@@ -116,8 +113,6 @@ def fourierSmoothing(seg,harmonics=5):
     rft = np.fft.rfft(r)
     rft[harmonics:]=0
     r_smooth = np.fft.irfft(rft)
-#    plt.figure(),plt.plot(phiUnique,rUnique)
-#    plt.figure(),plt.plot(phiUnique,r_smooth)
     if(len(r_smooth)<len(phi)):
         r_smooth = np.append(r_smooth,r_smooth[-1])
     x_smooth,y_smooth = pol2Cart(r_smooth,phi)
@@ -130,13 +125,8 @@ def fourierSmoothing(seg,harmonics=5):
   
   
 def getRegion(myoBinary,option='min'):
-#    edgeMyo = segment.find_boundaries(myoBinary.astype(int),connectivity=2,mode='outer',background=0)
-#    labeledImg,nLabels = measure.label(edgeMyo,background=0,return_num=True,connectivity=2)
     labeledImg,nLabels = measure.label(myoBinary,background=0,return_num=True,connectivity=myoBinary.ndim)
     if(nLabels>1):
-    #    print(nLabels)
-        labeledImg[labeledImg==0]=nLabels
-        labeledImg[labeledImg==-1]=0
         props = measure.regionprops(labeledImg)
         area = []
         for j in props:
@@ -147,8 +137,6 @@ def getRegion(myoBinary,option='min'):
             Ind = np.argmax(np.asarray(area))
         endo = np.zeros(labeledImg.shape)
         endo[labeledImg==(Ind+1)] = 1
-    #    endo = morph.binary_fill_holes(endoEdge)
-    #    return(endo,endoEdge>0.5)
     else:
          endo = np.zeros(labeledImg.shape)
          endo[labeledImg==-1] = 1
@@ -156,40 +144,26 @@ def getRegion(myoBinary,option='min'):
 
 
 def findBPSegment(seg,bpMask):
+    # Find the connected component closest to the center of bpMask
     bpCtr = np.mean(np.asarray(np.nonzero(bpMask)),axis=1).astype(float)
     labeledImg,nLabels = measure.label(seg,background=0,return_num=True,connectivity=1)
-    labeledImg[labeledImg==0]=nLabels
-    labeledImg[labeledImg==-1]=0
     props = measure.regionprops(labeledImg)
     distCtr = []
-#    isConvex = []
     for k in range(len(props)):
         labelImg = np.zeros(labeledImg.shape)
         labelImg[labeledImg==(k+1)]=1
         distMapLabel = distance_transform_edt(np.logical_not(labelImg),sampling=(1,1),return_distances=True,return_indices=False)
         distCtr.append(distMapLabel[int(bpCtr[0]),int(bpCtr[1])])
-#    for k in range(len(props)):
-#        distCtr.append(np.linalg.norm(np.asarray(props[k].centroid)-bpCtr))
-#        if(labeledImg[int(np.round(props[k].centroid[0])),int(np.round(props[k].centroid[1]))]==(k+1)):
-#            isConvex.append(True)
-#        else:
-#            isConvex.append(False)
-#    index = np.nonzero(np.logical_not(isConvex))
     segBP = np.zeros(seg.shape)
     if(len(distCtr)>0):
-#        maxDist = max(distCtr)
-##        if(len(index[0])>0):
-#        for k in index[0]:
-##            print(k)
-#            distCtr[k] = maxDist
         indexC = np.argmin(np.asarray(distCtr))
         segBP[labeledImg==(indexC+1)]=255
     return segBP
 
-    
+
 
 def fitEllipse(segBP):
-## Spline try
+    # Spline try
     points = np.asarray(np.nonzero(segment.find_boundaries(segBP.astype(int),connectivity=2,mode='inner',background=0))).T
     hull = spatial.ConvexHull(points)
     x = points[hull.vertices,0]
@@ -283,7 +257,6 @@ def angle_between_vectors(v0, v1, directed=True, axis=0):
 
 def findRotation(IOPMoving,IOPFixed):
     axisMoving = np.cross(IOPMoving[0:3],IOPMoving[3:6])
-#    axisFixed = np.cross(IOPFixed[0:3],IOPFixed[3:6])
     angle = angle_between_vectors(IOPFixed[0:3],IOPMoving[0:3],directed=False)
     rotation1 = sitk.VersorTransform(tuple(axisMoving),angle)
     rotation2 = sitk.VersorTransform(tuple(axisMoving),-angle)
@@ -320,7 +293,7 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
     resampleVolumeFilter.SetDefaultPixelValue(-10)
     resampleVolumeFilter.SetTransform(sitk.Transform(3,sitk.sitkIdentity))
     resampleVolumeFilter.SetSize(newSize)
-#    resampleVolumeFilter.SetExtrapolator()
+    # resampleVolumeFilter.SetExtrapolator()
     if interpolator=='nn':
         resampleVolumeFilter.SetInterpolator(sitk.sitkNearestNeighbor)
     elif interpolator=='g':
@@ -335,7 +308,7 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 
 
 
-#def stretchContrast(img,lower_clipping_percent,higher_clipping_percent):
+# def stretchContrast(img,lower_clipping_percent,higher_clipping_percent):
 #    outImg = np.zeros(img.shape)
 #    img = (img.astype(float)/img.max()*255).astype(int)
 #    if(img.min()<img.max()):
@@ -355,7 +328,7 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #            t[k] = round(float(k-fmin)/(fmax-fmin)*255)
 #            if(t[k]<0): t[k]=0
 #            if(t[k]>255): t[k]=255
-#    
+#
 #        for m in range(img.shape[0]):
 #            for n in range(img.shape[1]):
 #                outImg[m,n] = t[img[m,n]]
@@ -363,23 +336,23 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 
 
     
-#def appendSlices(inputVol,noOfSlices):
+# def appendSlices(inputVol,noOfSlices):
 #    appImg = np.zeros((volSize[0],volSize[1],volSize[2]+2*noOfSlices))
 #    appImg[:,:,0:noOfSlices] = npImage[:,:,0]
 #    appImg[:,:,noOfSlices:-noOfSlices] = npImage
 #    appImg[:,:,-1] = npImage[:,:,-1]
 
 
-## Function to resample the volume to new voxel spacing
-#def resampleVolume(inputVolRaw,NewVoxelSpacing,interpolator):
-#  
+# # Function to resample the volume to new voxel spacing
+# def resampleVolume(inputVolRaw,NewVoxelSpacing,interpolator):
+#
 #    volSize = np.asarray(inputVolRaw.GetSize())
 #    volSpacing = np.asarray(inputVolRaw.GetSpacing())
-##    if(len(newSize)!=0):
-##        newVolSize = newSize
-##    else:
+# #    if(len(newSize)!=0):
+# #        newVolSize = newSize
+# #    else:
 #    newVolSize = np.floor(np.divide(np.multiply(volSize-1,volSpacing),NewVoxelSpacing)).astype(int)+1
-##    sizeZ = float(newVolSize[2])
+# #    sizeZ = float(newVolSize[2])
 #
 #    # duplicate first and last slices
 #    npImage = sitk.GetArrayFromImage(inputVolRaw).swapaxes(0,2)
@@ -392,12 +365,12 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #    inputVol = sitk.GetImageFromArray(appImg.swapaxes(0,2))
 #    inputVol.SetSpacing(volSpacing)
 #    inputVol.SetOrigin(inputVolRaw.GetOrigin())
-#    inputVol = sitk.Cast(inputVol,inputVolRaw.GetPixelID())        
+#    inputVol = sitk.Cast(inputVol,inputVolRaw.GetPixelID())
 #
 #    originalSize = np.asarray(inputVol.GetSize())
 #    originalSpacing = np.asarray(inputVol.GetSpacing())
 #    newSize = np.floor(np.divide(np.multiply(originalSize,originalSpacing),NewVoxelSpacing)).astype(int)
-#    
+#
 #    resampleVolumeFilter = sitk.ResampleImageFilter()
 #    resampleVolumeFilter.SetOutputDirection(inputVol.GetDirection())
 #    resampleVolumeFilter.SetOutputOrigin(inputVol.GetOrigin())
@@ -406,7 +379,7 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #    resampleVolumeFilter.SetDefaultPixelValue(float('nan'))
 #    resampleVolumeFilter.SetTransform(sitk.Transform(3,sitk.sitkIdentity))
 #    resampleVolumeFilter.SetSize(newSize)
-##    resampleVolumeFilter.SetExtrapolator()
+# #    resampleVolumeFilter.SetExtrapolator()
 #    if interpolator=='nn':
 #        resampleVolumeFilter.SetInterpolator(sitk.sitkNearestNeighbor)
 #    elif interpolator=='g':
@@ -418,22 +391,22 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #
 #    resampledVol = resampleVolumeFilter.Execute(inputVol)
 #
-##    npRSImage = sitk.GetArrayFromImage(resampledVol).swapaxes(0,2)
-##    ctrSlice = np.floor(float(npRSImage.shape[2])/2) - np.floor(float(volSpacing[2])/(2*NewVoxelSpacing[2]))
-##    startSlice = max(ctrSlice-np.ceil(sizeZ/2),0)
-##    endSlice = startSlice+sizeZ
-##    ctrVol = npRSImage[:,:,startSlice:endSlice]
-##
-##    rsVol = sitk.GetImageFromArray(ctrVol.swapaxes(0,2))    
-##    rsVol.SetSpacing(originalSpacing)
-##    rsVol.SetOrigin(inputVol.GetOrigin())
-##    rsVol = sitk.Cast(rsVol,inputVol.GetPixelID())        
-#       
+# #    npRSImage = sitk.GetArrayFromImage(resampledVol).swapaxes(0,2)
+# #    ctrSlice = np.floor(float(npRSImage.shape[2])/2) - np.floor(float(volSpacing[2])/(2*NewVoxelSpacing[2]))
+# #    startSlice = max(ctrSlice-np.ceil(sizeZ/2),0)
+# #    endSlice = startSlice+sizeZ
+# #    ctrVol = npRSImage[:,:,startSlice:endSlice]
+# #
+# #    rsVol = sitk.GetImageFromArray(ctrVol.swapaxes(0,2))
+# #    rsVol.SetSpacing(originalSpacing)
+# #    rsVol.SetOrigin(inputVol.GetOrigin())
+# #    rsVol = sitk.Cast(rsVol,inputVol.GetPixelID())
+#
 #    return resampledVol
-
-
+#
+#
 # Attempt to resample reference patient to same number of slices for patient in hand
-#def resampleRefVol(sitkRefVol,nSlices):
+# def resampleRefVol(sitkRefVol,nSlices):
 #    oldSize = sitkRefVol.GetSize()
 #    newSize = oldSize[0:2]+(nSlices,)
 #    oldVoxelSpacing = sitkRefVol.GetSpacing()
@@ -442,10 +415,10 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #    resampleVolumeFilter = sitk.ResampleImageFilter()
 #    sitkRefVolRS = resampleVolumeFilter.Execute(sitkRefVol,newSize,sitk.Transform(),sitk.sitkNearestNeighbor,sitkRefVol.GetOrigin(),newVoxelSpacing,sitkRefVol.GetDirection(),0,sitkRefVol.GetPixelIDValue())
 #    return sitkRefVolRS
-
-
+#
+#
 # Attempt to shift the physical space of volume to be resampled
-#def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
+# def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #    originalSize = np.asarray(inputVol.GetSize())
 #    originalSpacing = np.asarray(inputVol.GetSpacing())
 #    newSize = np.round(np.divide(np.multiply(originalSize,originalSpacing),NewVoxelSpacing)).astype(int)
@@ -455,7 +428,7 @@ def resampleVolume(inputVol,NewVoxelSpacing,interpolator):
 #        inputOrigin = inputVol.GetOrigin();
 #        newOrigin = inputOrigin[0:2]+(-origin/2,)
 #        inputVol.SetOrigin(newOrigin)
-#        
+#
 #    resampleVolumeFilter = sitk.ResampleImageFilter()
 #    if interpolator=='nn':
 #        resampledVol = resampleVolumeFilter.Execute(inputVol,newSize,sitk.Transform(),sitk.sitkNearestNeighbor,(0.0,0.0,0.0),NewVoxelSpacing,inputVol.GetDirection(),0,inputVol.GetPixelIDValue())
@@ -477,11 +450,8 @@ def createMontage(vol,nCols=4):
 
 
 def createMontageRGB(vol_fixed, vol_moving, nCols=4, expand=1):
-    #    vol_fixed = sitk.GetArrayFromImage(vol_fixed).swapaxes(0,2)
-#    vol_moving = sitk.GetArrayFromImage(vol_moving).swapaxes(0,2)
     if(len(vol_fixed.shape)>2):
         nSlices = vol_fixed.shape[2]
-    #    nCols = 4
         nRows = np.ceil(float(nSlices)/nCols).astype(int)
         montageImgFixed = 128*np.ones((nRows*vol_fixed.shape[0],nCols*vol_fixed.shape[1]))
         for i in range(nRows):
@@ -490,7 +460,6 @@ def createMontageRGB(vol_fixed, vol_moving, nCols=4, expand=1):
                     montageImgFixed[i*vol_fixed.shape[0]:(i+1)*vol_fixed.shape[0],j*vol_fixed.shape[1]:(j+1)*vol_fixed.shape[1]] = vol_fixed[:,:,i*nCols+j]
     
         nSlices = vol_moving.shape[2]
-    #    nCols = 4
         nRows = np.ceil(float(nSlices)/nCols).astype(int)
         montageImgMoving = 128*np.ones((nRows*vol_moving.shape[0],nCols*vol_moving.shape[1]))
         for i in range(nRows):
@@ -501,10 +470,10 @@ def createMontageRGB(vol_fixed, vol_moving, nCols=4, expand=1):
         montageImgFixed = vol_fixed
         montageImgMoving = vol_moving
 
-    simg1 = sitk.GetImageFromArray(montageImgFixed)#.swapaxes(0,1))
-    simg2 = sitk.GetImageFromArray(montageImgMoving)#.swapaxes(0,1))
-    simg1 = sitk.Cast(sitk.RescaleIntensity(simg1), sitk.sitkUInt8)
-    simg2 = sitk.Cast(sitk.RescaleIntensity(simg2), sitk.sitkUInt8)
+    simg1 = sitk.GetImageFromArray(montageImgFixed)
+    simg2 = sitk.GetImageFromArray(montageImgMoving)
+    simg1 = sitk.Cast(sitk.RescaleIntensity(simg1),sitk.sitkUInt8)
+    simg2 = sitk.Cast(sitk.RescaleIntensity(simg2),sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg1/2.+simg2/2., simg2)
     if expand != 1:
         cimg = sitk.Expand(cimg, [expand]*3)
@@ -531,11 +500,8 @@ def displayMontage(vol,nCols=1):
 
 
 def displayMontageRGB(vol_fixed, vol_moving, nCols=1, title="", margin=0.05, expand=1):
-#    vol_fixed = sitk.GetArrayFromImage(vol_fixed).swapaxes(0,2)
-#    vol_moving = sitk.GetArrayFromImage(vol_moving).swapaxes(0,2)
     if(len(vol_fixed.shape)>2):
         nSlices = vol_fixed.shape[2]
-    #    nCols = 4
         nRows = np.ceil(float(nSlices)/nCols).astype(int)
         montageImgFixed = 128*np.ones((nRows*vol_fixed.shape[0],nCols*vol_fixed.shape[1]))
         for i in range(nRows):
@@ -544,7 +510,6 @@ def displayMontageRGB(vol_fixed, vol_moving, nCols=1, title="", margin=0.05, exp
                     montageImgFixed[i*vol_fixed.shape[0]:(i+1)*vol_fixed.shape[0],j*vol_fixed.shape[1]:(j+1)*vol_fixed.shape[1]] = vol_fixed[:,:,i*nCols+j]
     
         nSlices = vol_moving.shape[2]
-    #    nCols = 4
         nRows = np.ceil(float(nSlices)/nCols).astype(int)
         montageImgMoving = 128*np.ones((nRows*vol_moving.shape[0],nCols*vol_moving.shape[1]))
         for i in range(nRows):
@@ -555,8 +520,8 @@ def displayMontageRGB(vol_fixed, vol_moving, nCols=1, title="", margin=0.05, exp
         montageImgFixed = vol_fixed
         montageImgMoving = vol_moving
 
-    simg1 = sitk.GetImageFromArray(montageImgFixed)#.swapaxes(0,1))
-    simg2 = sitk.GetImageFromArray(montageImgMoving)#.swapaxes(0,1))
+    simg1 = sitk.GetImageFromArray(montageImgFixed)
+    simg2 = sitk.GetImageFromArray(montageImgMoving)
     simg1 = sitk.Cast(sitk.RescaleIntensity(simg1), sitk.sitkUInt8)
     simg2 = sitk.Cast(sitk.RescaleIntensity(simg2), sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg1/2.+simg2/2., simg2)
@@ -616,34 +581,19 @@ def normalizeSlices(initVol,lowerPercentile=0,higherPercentile=100,mask=[]):
             temp = stretchContrast(initVol,lowerPercentile,higherPercentile,mask)
             finalVol = (255*(temp.astype('float')-float(temp.min()))/float(temp.max())).astype('uint8')
             finalVol = exposure.rescale_intensity(finalVol)
-    return finalVol#.astype('uint8')
+    return finalVol
 
 
 
 def stretchContrast(img,lowerPercentile=0,higherPercentile=100,mask=[]):
-#    nImg = np.zeros(img.shape)
     if(np.sum(mask)>0):
         indNZ = np.nonzero(mask)
     else:
         indNZ = np.nonzero(np.ones(img.shape))
     nImg = np.copy(img)
     vMin,vMax = np.percentile(img[indNZ[0],indNZ[1]].ravel(),(lowerPercentile,higherPercentile))
-#    print(vMin,vMax)
     nImg[nImg>vMax] = vMax
     nImg[nImg<vMin] = vMin
-#    if(len(img.shape)>2):
-#        for i in range(img.shape[2]):
-#            tmpImg = img[:,:,i]
-#            vMin,vMax = np.percentile(tmpImg.ravel(),(lowerPercentile,higherPercentile))
-#            tmpImg[tmpImg>vMax] = vMax
-##            nImg[:,:,i] = exposure.rescale_intensity(img[:,:,i],in_range=(vMin,vMax))
-#            nImg[:,:,i] = tmpImg
-#    else:
-#        tmpImg = img
-#        vMin,vMax = np.percentile(img.ravel(),(lowerPercentile,higherPercentile))
-#        tmpImg[tmpImg>vMax] = vMax
-##        nImg = exposure.rescale_intensity(img,in_range=(vMin,vMax))
-#        nImg = tmpImg
     return(nImg)
 
 
@@ -659,7 +609,6 @@ def getCircularMask(mask,shape,scale=1.15,offset=False):
     else:
         perturb = 0
     cv2.circle(img, center=(circ[1]+perturb, circ[0]+perturb), radius=int(circ[2]*scale), color=1, thickness=-1)
-    #    func.displayMontage(img)
     maskVol = np.zeros(shape)
     if(len(maskVol.shape)>2):
         for i in range(maskVol.shape[2]):
@@ -673,13 +622,10 @@ def findEvaluationMask(refGT):
     refGT = refGT.astype(float)/np.max(refGT)
     refGT = refGT>=0.5
     mask = np.zeros(refGT.shape)
-#    plt.figure(),plt.imshow(refGT,cmap=plt.cm.gray)
     if(np.sum(refGT.ravel())>0):
         props = measure.regionprops(refGT)
         r = props[0].equivalent_diameter/8
         mask = skmorph.binary_dilation(refGT,selem=skmorph.disk(r))
-#    plt.figure(),plt.imshow(mask,cmap=plt.cm.gray)
-#    propsMask = regionprops(mask)
     return(mask)
     
 
@@ -689,19 +635,15 @@ def evalMetrics(refGT,segGT,metricMask):
     
     refGT = refGT.astype(float)/np.max(refGT)
     refGT = refGT>=0.5
-#    plt.figure(),plt.imshow(refGT,cmap=plt.cm.gray)
-    
+
     segGT = segGT.astype(float)/np.max(segGT)
     segGT = segGT>=0.5
-#    plt.figure(),plt.imshow(segGT,cmap=plt.cm.gray)
-    
+
     T1 = float(np.sum(np.logical_and(refGT,segGT))) #true positive
     F1 = float(np.sum(np.logical_and(np.logical_and(np.logical_not(refGT),segGT),metricMask))) #false positive
     T0 = float(np.sum(np.logical_and(np.logical_and(np.logical_not(refGT),np.logical_not(segGT)),metricMask))) #true negative
     F0 = float(np.sum(np.logical_and(np.logical_and(refGT,np.logical_not(segGT)),metricMask))) #false negative
-#    N1 = np.sum(refGT.ravel())
-#    N0 = np.sum(np.logical_not(refGT.ravel()))
-    
+
     sensitivity = 0
     specificity = 0
     positivePredictiveValue = 0
@@ -766,16 +708,8 @@ def evaluateMetrics(testGT,tformGT,option='intersection'):
     for k in range(startInd,endInd+1):
         maskRefGT = findEvaluationMask(testGT[:,:,k]>0.5)
         maskSegGT = tformGT[:,:,k]>0.5
-    #    mask = maskRefGT
-    #    propsMask1 = regionprops(avgGT[:,:,k]>127)
-    #    propsMask2 = regionprops(maskRefGT>0)
-    #    if(len(propsMask1)>0):
-    #        print(propsMask1[0].area,propsMask2[0].area)
         mask = np.logical_or(maskRefGT,maskSegGT)
-    #    func.displayMontage(mask)
         if(np.sum(mask)>0):
-#            print(k)
-    #        func.displayMontageRGB(testGT[:,:,k],tformGT[:,:,k],5)
             a,b,c,d,e,f = evalMetrics(testGT[:,:,k],tformGT[:,:,k],maskRefGT)
             sensitivity = sensitivity+(a,)
             specificity = specificity+(b,)
@@ -899,12 +833,9 @@ def hist_match(source, template, sourceMask=[], templateMask=[]):
 
     # get the set of unique pixel values and their corresponding indices and
     # counts
-#    s_values, bin_idx, s_counts = np.unique(srcFlat, return_inverse=True,
-#                                            return_counts=True)
     t_values, t_counts = np.unique(tmpltFlat, return_counts=True)
 
     s_counts,s_values = np.histogram(srcFlat,bins=256,range=(0,256))
-#    t_counts,t_values = np.histogram(tmpltFlat,bins=256,range=(0,256))
     # take the cumsum of the counts and normalize by the number of pixels to
     # get the empirical cumulative distribution functions for the source and
     # template images (maps pixel value --> quantile)
@@ -913,7 +844,6 @@ def hist_match(source, template, sourceMask=[], templateMask=[]):
     t_quantiles = np.cumsum(t_counts).astype(np.float64)
     t_quantiles /= t_quantiles[-1]
 
-#    s_unqQuantiles, bin_idx = np.unique(s_quantiles,return_inverse=True)
     # interpolate linearly to find the pixel values in the template image
     # that correspond most closely to the quantiles in the source image
     interp_t_values = np.interp(s_quantiles, t_quantiles, t_values)
@@ -951,7 +881,7 @@ def createDeciMesh(vtkData,isovalue,trgtReduction):
     deci.SetInputConnection(contour.GetOutputPort())
     deci.SetTargetReduction(trgtReduction)
     deci.PreserveTopologyOn()
-#    deci.SetFeatureAngle(30)
+    # deci.SetFeatureAngle(30)
     deci.SplittingOn()
     deci.Update()
     
@@ -967,14 +897,14 @@ def createSmoothMesh(vtkData,isovalue,trgtReduction,filterNoOfIterations):
     deci.SetInputConnection(contour.GetOutputPort())
     deci.SetTargetReduction(trgtReduction)
     deci.PreserveTopologyOn()
-#    deci.SetFeatureAngle(30)
+    # deci.SetFeatureAngle(30)
     deci.SplittingOn()
     deci.Update()
     
     smoother = vtk.vtkWindowedSincPolyDataFilter()
     smoother.SetInputConnection(contour.GetOutputPort())
     smoother.SetNumberOfIterations(filterNoOfIterations)
-    #smoother.FeatureEdgeSmoothingOn()
+    # smoother.FeatureEdgeSmoothingOn()
     smoother.NormalizeCoordinatesOn()
     smoother.BoundarySmoothingOff()
     smoother.GenerateErrorScalarsOn()
@@ -1007,11 +937,11 @@ def createMeshActor(mesh, color, opacity):
 
 
 def createOutlineActor(vtkData):
-    outlineData = vtkOutlineFilter()
+    outlineData = vtk.vtkOutlineFilter()
     outlineData.SetInputData(vtkData)
-    outlineMapper = vtkPolyDataMapper()
+    outlineMapper = vtk.vtkPolyDataMapper()
     outlineMapper.SetInputConnection(outlineData.GetOutputPort())
-    outlineActor = vtkActor()
+    outlineActor = vtk.vtkActor()
     outlineActor.SetMapper(outlineMapper)
     outlineActor.GetProperty().SetColor(0.9,0.9,0.9)
     return outlineActor
@@ -1026,7 +956,7 @@ def createStartWindow(ren):
     renWin.SetSize(1000,1000)
     
     # Start the application
-    iren = vtkRenderWindowInteractor()
+    iren = vtk.vtkRenderWindowInteractor()
     iren.SetRenderWindow(renWin)
     iren.Initialize()
     iren.Start()
@@ -1039,38 +969,38 @@ def visualizeCutPlane(imageVTK):
     global sliceNum, renWin, d
     sliceNum=0
     w,h,d = imageVTK.GetDimensions()
-    ## Create the MIP Volume Renderer
-    #MIP = vtk.vtkVolumeRayCastMIPFunction()
-    #volumeMapper = vtk.vtkVolumeRayCastMapper()
-    #volumeMapper.SetVolumeRayCastFunction(MIP)
-    #volumeMapper.SetInputConnection(dataImporter.GetOutputPort())
+    # # Create the MIP Volume Renderer
+    # MIP = vtk.vtkVolumeRayCastMIPFunction()
+    # volumeMapper = vtk.vtkVolumeRayCastMapper()
+    # volumeMapper.SetVolumeRayCastFunction(MIP)
+    # volumeMapper.SetInputConnection(dataImporter.GetOutputPort())
     #
-    ## Create a Volume
-    #volume = vtk.vtkVolume()
-    #volume.SetMapper(volumeMapper)
+    # # Create a Volume
+    # volume = vtk.vtkVolume()
+    # volume.SetMapper(volumeMapper)
     
     # Create an outline
-    outlineData = vtkOutlineFilter()
+    outlineData = vtk.vtkOutlineFilter()
     outlineData.SetInputData(imageVTK)
-    outlineMapper = vtkPolyDataMapper()
+    outlineMapper = vtk.vtkPolyDataMapper()
     outlineMapper.SetInputConnection(outlineData.GetOutputPort())
-    outline = vtkActor()
+    outline = vtk.vtkActor()
     outline.SetMapper(outlineMapper)
     outline.GetProperty().SetColor(0.9,0.9,0.9)
     
     # Initialize a Plane
-    plane = vtkImagePlaneWidget()
+    plane = vtk.vtkImagePlaneWidget()
     plane.SetInputData(imageVTK)
     plane.SetSliceIndex(sliceNum)
     
     # Set Camera Position
-    camera = vtkCamera()
+    camera = vtk.vtkCamera()
     camera.SetViewUp(0,0,-1)
     camera.SetPosition(-2,-2,-2)
     
     # Display the slice number
-    textActor = vtkTextActor()
-    tp = vtkTextProperty()
+    textActor = vtk.vtkTextActor()
+    tp = vtk.vtkTextProperty()
     tp.SetColor(1.0,0.2,0.3)
     tp.SetFontSize(30)
     textActor.SetTextProperty(tp)
@@ -1108,18 +1038,17 @@ def visualizeCutPlane(imageVTK):
             textActor.SetInput(str(sliceNum))
             renWin.Render()
             
-            
     # Start the application
-    iren = vtkRenderWindowInteractor()
+    iren = vtk.vtkRenderWindowInteractor()
     iren.SetRenderWindow(renWin)
     # Re-render according to the keypress
     iren.AddObserver("KeyPressEvent",Keypress)
     
     # For cut plane
     plane.SetPlaneOrientationToXAxes()
-    #plane.SetPlaneOrientationToYAxes()
-    #plane.SetPlaneOrientationToZAxes()
-    #volume.VisibilityOff()
+    # plane.SetPlaneOrientationToYAxes()
+    # plane.SetPlaneOrientationToZAxes()
+    # volume.VisibilityOff()
     plane.SetInteractor(iren)
     plane.EnabledOn()
     
@@ -1130,7 +1059,7 @@ def visualizeCutPlane(imageVTK):
 
 # Function to display Maximum Intensity Projection
 def visualizeMIP(data_matrix,spacing):
-    dataImporter = func.vtkDataImport(data_matrix,spacing)
+    dataImporter = importArray(data_matrix,1,spacing)
 
     # Create the MIP Volume Renderer
     MIP = vtk.vtkVolumeRayCastMIPFunction()
@@ -1143,21 +1072,21 @@ def visualizeMIP(data_matrix,spacing):
     volume.SetMapper(volumeMapper)
     
     # Create an outline
-    outlineData = vtkOutlineFilter()
+    outlineData = vtk.vtkOutlineFilter()
     outlineData.SetInputConnection(dataImporter.GetOutputPort())
-    outlineMapper = vtkPolyDataMapper()
+    outlineMapper = vtk.vtkPolyDataMapper()
     outlineMapper.SetInputConnection(outlineData.GetOutputPort())
-    outline = vtkActor()
+    outline = vtk.vtkActor()
     outline.SetMapper(outlineMapper)
     outline.GetProperty().SetColor(0.9,0.9,0.9)
     
-#    # Initialize a Plane
-#    plane = vtkImagePlaneWidget()
-#    plane.SetInputConnection(dataImporter.GetOutputPort())
-#    plane.SetSliceIndex(3)
+    # # Initialize a Plane
+    # plane = vtkImagePlaneWidget()
+    # plane.SetInputConnection(dataImporter.GetOutputPort())
+    # plane.SetSliceIndex(3)
     
     # Set Camera Position
-    camera = vtkCamera()
+    camera = vtk.vtkCamera()
     camera.SetViewUp(0,0,-1)
     camera.SetPosition(-2,-2,-2)
     
@@ -1178,16 +1107,16 @@ def visualizeMIP(data_matrix,spacing):
     renWin.SetSize(1000,1000)
     
     # Start the application
-    iren = vtkRenderWindowInteractor()
+    iren = vtk.vtkRenderWindowInteractor()
     iren.SetRenderWindow(renWin)
     
-#    # For cut plane
-#    plane.SetPlaneOrientationToXAxes()
-#    #plane.SetPlaneOrientationToYAxes()
-#    #plane.SetPlaneOrientationToZAxes()
-#    volume.VisibilityOff()
-#    plane.SetInteractor(iren)
-#    plane.EnabledOn()
+    # # For cut plane
+    # plane.SetPlaneOrientationToXAxes()
+    # #plane.SetPlaneOrientationToYAxes()
+    # #plane.SetPlaneOrientationToZAxes()
+    # volume.VisibilityOff()
+    # plane.SetInteractor(iren)
+    # plane.EnabledOn()
     
     iren.Initialize()
     iren.Start()
@@ -1195,11 +1124,8 @@ def visualizeMIP(data_matrix,spacing):
 
 
 # Function that performs Composite Volume Rendering
-#def visualizeCompositeVol(data_matrix,spacing):
-#    dataImporter = vtkDataImport(data_matrix,spacing)
 def visualizeCompositeVol(vtkImage):
-    
-#    vtkImage = importArray(data_matrix,1,spacing)
+    # vtkImage = importArray(data_matrix,1,spacing)
     alphaChannelFunc = vtk.vtkPiecewiseFunction()
     colorFunc = vtk.vtkColorTransferFunction()
     maxI = vtkImage.GetScalarTypeMax()
@@ -1217,21 +1143,21 @@ def visualizeCompositeVol(vtkImage):
     volumeProperty = vtk.vtkVolumeProperty()
     volumeProperty.SetColor(colorFunc)
     volumeProperty.SetScalarOpacity(alphaChannelFunc)
-    #volumeProperty.ShadeOn()
+    # volumeProperty.ShadeOn()
     
     # This class describes how the volume is rendered (through ray tracing).
     # For Composite Volume Rendering
     compositeFunction = vtk.vtkVolumeRayCastCompositeFunction()
     
     # function to reduce the spacing between each image
-    #volumeMapper.SetMaximumImageSampleDistance(0.01)
+    # volumeMapper.SetMaximumImageSampleDistance(0.01)
     
     # We can finally create our volume. We also have to specify the data for it, 
     # as well as how the data will be rendered.
     volumeMapper = vtk.vtkVolumeRayCastMapper()
     volumeMapper.SetVolumeRayCastFunction(compositeFunction)
-#    volumeMapper.SetInputConnection(smooth.GetOutputPort())
-#    volumeMapper.SetInputData(smooth)
+    # volumeMapper.SetInputConnection(smooth.GetOutputPort())
+    # volumeMapper.SetInputData(smooth)
     volumeMapper.SetInputData(vtkImage)
     
     # The class vtkVolume is used to pair the previously declared volume as well 
@@ -1241,24 +1167,24 @@ def visualizeCompositeVol(vtkImage):
     volume.SetProperty(volumeProperty)
     
     # Create an outline
-    outlineData = vtkOutlineFilter()
-#    outlineData.SetInputData(smooth)
+    outlineData = vtk.vtkOutlineFilter()
+    # outlineData.SetInputData(smooth)
     outlineData.SetInputData(vtkImage)
-    outlineMapper = vtkPolyDataMapper()
+    outlineMapper = vtk.vtkPolyDataMapper()
     outlineMapper.SetInputConnection(outlineData.GetOutputPort())
-    outline = vtkActor()
+    outline = vtk.vtkActor()
     outline.SetMapper(outlineMapper)
     outline.GetProperty().SetColor(0.9,0.9,0.9)
     
     # Set Camera Position
-    camera = vtkCamera()
+    camera = vtk.vtkCamera()
     camera.SetViewUp(0,0,-1)
     camera.SetPosition(-2,-2,-2)
     
-    ## Initialize a Plane
-    #plane = vtkImagePlaneWidget()
-    #plane.SetInputConnection(dataImporter.GetOutputPort())
-    #plane.SetSliceIndex(3)
+    # # Initialize a Plane
+    # plane = vtkImagePlaneWidget()
+    # plane.SetInputConnection(dataImporter.GetOutputPort())
+    # plane.SetSliceIndex(3)
     
     # Create the Renderer, Window and Interator
     ren = vtk.vtkRenderer()
@@ -1277,16 +1203,16 @@ def visualizeCompositeVol(vtkImage):
     renWin.SetSize(1000,1000)
     
     # Start the application
-    iren = vtkRenderWindowInteractor()
+    iren = vtk.vtkRenderWindowInteractor()
     iren.SetRenderWindow(renWin)
 
-#    # For cut plane
-#    plane.SetPlaneOrientationToXAxes()
-#    #plane.SetPlaneOrientationToYAxes()
-#    #plane.SetPlaneOrientationToZAxes()
-#    volume.VisibilityOff()
-#    plane.SetInteractor(iren)
-#    plane.EnabledOn()
+    # For cut plane
+    # plane.SetPlaneOrientationToXAxes()
+    # #plane.SetPlaneOrientationToYAxes()
+    # #plane.SetPlaneOrientationToZAxes()
+    # volume.VisibilityOff()
+    # plane.SetInteractor(iren)
+    # plane.EnabledOn()
     
     iren.Initialize()
     iren.Start()
@@ -1300,7 +1226,7 @@ def visualizeIsosurface(vtkImage,spacing,isovalue,color,opacity):
     outlineActor = createOutlineActor(vtkImage)
     
     # Set Camera Position
-    camera = vtkCamera()
+    camera = vtk.vtkCamera()
     camera.SetViewUp(0,0,-1)
     camera.SetPosition(-2,-2,-2)
         
@@ -1311,7 +1237,7 @@ def visualizeIsosurface(vtkImage,spacing,isovalue,color,opacity):
     ren.AddActor(outlineActor)
     # Actor for isosurfaces
     ren.AddActor(meshActor)
-    #ren.AddActor(meshActor3)
+    # ren.AddActor(meshActor3)
     # Set the camera
     ren.SetActiveCamera(camera)
     ren.ResetCamera()
@@ -1329,7 +1255,7 @@ def visualizeIsosurfacePair(vtkImageF,spacingF,isovalueF,colorF,opacityF,vtkImag
     outlineActor = createOutlineActor(vtkImageF)
     
     # Set Camera Position
-    camera = vtkCamera()
+    camera = vtk.vtkCamera()
     camera.SetViewUp(0,0,-1)
     camera.SetPosition(-2,-2,-2)
         
@@ -1374,14 +1300,14 @@ def createFineMesh(vtkData,isovalue=255,trgtRedDecimation=0.75,filterNoOfIterati
     deci.SetInputConnection(contour.GetOutputPort())
     deci.SetTargetReduction(trgtRedDecimation)
     deci.PreserveTopologyOn()
-#    deci.SetFeatureAngle(30)
+    # deci.SetFeatureAngle(30)
     deci.SplittingOn()
     deci.Update()
     
     smoother = vtk.vtkWindowedSincPolyDataFilter()
     smoother.SetInputConnection(deci.GetOutputPort())
     smoother.SetNumberOfIterations(filterNoOfIterations)
-    #smoother.FeatureEdgeSmoothingOn()
+    # smoother.FeatureEdgeSmoothingOn()
     smoother.NormalizeCoordinatesOn()
     smoother.BoundarySmoothingOff()
     smoother.GenerateErrorScalarsOn()
@@ -1389,17 +1315,17 @@ def createFineMesh(vtkData,isovalue=255,trgtRedDecimation=0.75,filterNoOfIterati
     
     cobj = Clustering.Cluster(smoother.GetOutput())
     cobj.GenClusters(nMeshPoints, subratio=20, verbose=True) 
-    #cobj.PlotClusters()
-    
+    # cobj.PlotClusters()
+
     # Plot new mesh
     cobj.GenMesh()
-#    cobj.PlotRemesh()
+    # cobj.PlotRemesh()
     reMesh = cobj.ReturnMesh()
     
-#    meshNormals = vtk.vtkPolyDataNormals()
-#    meshNormals.SetInputData(reMesh)
-#    meshNormals.Update()
-#    return(meshNormals.GetOutput())
+    # meshNormals = vtk.vtkPolyDataNormals()
+    # meshNormals.SetInputData(reMesh)
+    # meshNormals.Update()
+    # return(meshNormals.GetOutput())
     return(reMesh)
 
 
@@ -1410,14 +1336,14 @@ def getPointsPoly(vtkMesh):
     vtkCellArray = vtkMesh.GetPolys()
     cells = ()
     
-    #meanPoint = np.mean(numpyPoints,axis=0)
-    #plt.scatter(numpyPoints[:,0],numpyPoints[:,1])
-    #fig = plt.figure()
-    #ax = fig.add_subplot(111, projection='3d')
-    #ax.scatter(numpyPoints[:,0],numpyPoints[:,1],numpyPoints[:,2])
-    #ax.set_xlabel('X Label')
-    #ax.set_ylabel('Y Label')
-    #ax.set_zlabel('Z Label')
+    # meanPoint = np.mean(numpyPoints,axis=0)
+    # plt.scatter(numpyPoints[:,0],numpyPoints[:,1])
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(numpyPoints[:,0],numpyPoints[:,1],numpyPoints[:,2])
+    # ax.set_xlabel('X Label')
+    # ax.set_ylabel('Y Label')
+    # ax.set_zlabel('Z Label')
 
     vtkCellArray.InitTraversal()
     idList = vtk.vtkIdList()
@@ -1444,7 +1370,7 @@ def getSlicesFromMesh(mesh,vtkImage,newSpacing,newSize):
     cutter.GenerateCutScalarsOn()
     cutter.GenerateValues(newSize[2],0.0,(newSize[2]-1)*newSpacing[2])
     cutter.Update()
-    #cutEdges.GenerateTrianglesOn()
+    # cutEdges.GenerateTrianglesOn()
     
     cutStrips = vtk.vtkStripper()
     cutStrips.SetInputConnection(cutter.GetOutputPort())
@@ -1456,7 +1382,7 @@ def getSlicesFromMesh(mesh,vtkImage,newSpacing,newSize):
     extrude = vtk.vtkLinearExtrusionFilter()
     extrude.SetInputData(cutPoly)
     extrude.SetScaleFactor(newSpacing[2])
-    #extrude.SetExtrusionTypeToNormalExtrusion()
+    # extrude.SetExtrusionTypeToNormalExtrusion()
     extrude.SetVector(0, 0, 1)
     extrude.Update()
     
@@ -1498,7 +1424,7 @@ def cutMesh(smoothMesh,newSize,newSpacing):
     cutter.GenerateCutScalarsOn()
     cutter.GenerateValues(newSize[2],0,(newSize[2]-1)*newSpacing[2])
     cutter.Update()
-    #cutEdges.GenerateTrianglesOn()
+    # cutEdges.GenerateTrianglesOn()
     
     cutStrips = vtk.vtkStripper()
     cutStrips.SetInputConnection(cutter.GetOutputPort())
@@ -1510,7 +1436,7 @@ def cutMesh(smoothMesh,newSize,newSpacing):
     extrude = vtk.vtkLinearExtrusionFilter()
     extrude.SetInputData(cutPoly)
     extrude.SetScaleFactor(newSpacing[2])
-    #extrude.SetExtrusionTypeToNormalExtrusion()
+    # extrude.SetExtrusionTypeToNormalExtrusion()
     extrude.SetVector(0, 0, 1)
     extrude.Update()
     
@@ -1537,7 +1463,7 @@ def cutMesh(smoothMesh,newSize,newSpacing):
     stencil.SetBackgroundValue(0)
     stencil.Update()
     
-    #func.visualizeCompositeVol(stencil.GetOutput())
+    # func.visualizeCompositeVol(stencil.GetOutput())
     
     cutImage = stencil.GetOutput()
     
@@ -1558,14 +1484,14 @@ def interpBasalSlice(GT,oldSpacing,newSpacing):
         currentSliceEdge = seg.find_boundaries(currentSlice)
         distImg = distance_transform_edt(np.logical_not(currentSliceEdge),return_distances=True)
         distImg[indNZ] = -distImg[indNZ]
-    #    plt.figure(),plt.imshow(np.logical_not(currentSliceEdge),cmap=plt.cm.gray)
-    #    plt.figure(),plt.imshow(distImg<0,cmap=plt.cm.gray)
+        # plt.figure(),plt.imshow(np.logical_not(currentSliceEdge),cmap=plt.cm.gray)
+        # plt.figure(),plt.imshow(distImg<0,cmap=plt.cm.gray)
         distMap[:,:,j] = distImg
     
     sitkDist = sitk.GetImageFromArray(distMap.swapaxes(0,2))
     sitkDist.SetSpacing(oldSpacing)
     newSpacing = (oldSpacing[0],oldSpacing[1],1.0)
-#    newSize = np.array([GT.shape[0],GT.shape[1],int((GT.shape[2]-1)*oldSpacing[2]/newSpacing[2]+1)])
+    # newSize = np.array([GT.shape[0],GT.shape[1],int((GT.shape[2]-1)*oldSpacing[2]/newSpacing[2]+1)])
     rsDist = resampleVolume(sitkDist,newSpacing,'l')
     reVol = sitk.GetArrayFromImage(rsDist).swapaxes(0,2)
     return reVol
@@ -1607,20 +1533,20 @@ def localLBP(patch):
     lbpZX = ()
     for i in range(patch.shape[0]):
         lbpPatch81 = skfeat.local_binary_pattern(patch[i,:,:],8,1,method='uniform')
-#        lbpPatch162 = skfeat.local_binary_pattern(patch[i,:,:],16,2,method='uniform')
-#        lbpPatch243 = skfeat.local_binary_pattern(patch[i,:,:],24,3,method='uniform')
+        # lbpPatch162 = skfeat.local_binary_pattern(patch[i,:,:],16,2,method='uniform')
+        # lbpPatch243 = skfeat.local_binary_pattern(patch[i,:,:],24,3,method='uniform')
         lbpZX = lbpZX+(lbpPatch81[1,1]/9,)#lbpPatch162[2,2]/17,lbpPatch243[3,3]/25)
     lbpYZ = ()
     for i in range(patch.shape[1]):
         lbpPatch81 = skfeat.local_binary_pattern(patch[:,i,:],8,1,method='uniform')
-#        lbpPatch162 = skfeat.local_binary_pattern(patch[:,i,:],16,2,method='uniform')
-#        lbpPatch243 = skfeat.local_binary_pattern(patch[:,i,:],24,3,method='uniform')
+        # lbpPatch162 = skfeat.local_binary_pattern(patch[:,i,:],16,2,method='uniform')
+        # lbpPatch243 = skfeat.local_binary_pattern(patch[:,i,:],24,3,method='uniform')
         lbpYZ = lbpYZ+(lbpPatch81[1,1]/9,)#lbpPatch162[2,2]/17,lbpPatch243[3,3]/25)
     lbpXY = ()
     for i in range(patch.shape[2]):
         lbpPatch81 = skfeat.local_binary_pattern(patch[:,i,:],8,1,method='uniform')
-#        lbpPatch162 = skfeat.local_binary_pattern(patch[:,i,:],16,2,method='uniform')
-#        lbpPatch243 = skfeat.local_binary_pattern(patch[:,i,:],24,3,method='uniform')
+        # lbpPatch162 = skfeat.local_binary_pattern(patch[:,i,:],16,2,method='uniform')
+        # lbpPatch243 = skfeat.local_binary_pattern(patch[:,i,:],24,3,method='uniform')
         lbpXY = lbpXY+(lbpPatch81[1,1]/9,)#lbpPatch162[2,2]/17,lbpPatch243[3,3]/25)
     lbpXYZ = lbpXY+lbpYZ+lbpZX
     return(lbpXYZ)
