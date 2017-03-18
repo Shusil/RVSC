@@ -25,6 +25,7 @@ import skimage.filters as filt
 import math
 import sklearn.metrics as metric
 import nibabel as nib
+import csv
 
 def command_iteration(method):
     print("{0:3} = {1:10.5f} : {2}".format(method.GetOptimizerIteration(),
@@ -324,18 +325,18 @@ indices = range(0,16)
 
 execTime = np.zeros(16)
 
-#diceFile = open('dice.csv','wb')
-#wDice = csv.writer(diceFile,delimiter=',',quoting=csv.QUOTE_NONE)
-#jaccardFile = open('jaccard.csv','wb')
-#wJaccard = csv.writer(jaccardFile,delimiter=',',quoting=csv.QUOTE_NONE)
-#madFile = open('mad.csv','wb')
-#wMad = csv.writer(madFile,delimiter=',',quoting=csv.QUOTE_NONE)
-#hdFile = open('hd.csv','wb')
-#wHd = csv.writer(hdFile,delimiter=',',quoting=csv.QUOTE_NONE)
-#itrFile = open('itr.csv','wb')
-#wItr = csv.writer(itrFile,delimiter=',',quoting=csv.QUOTE_NONE)
-#timeFile = open('time.csv','wb')
-#wTime = csv.writer(timeFile,delimiter=',',quoting=csv.QUOTE_NONE)
+diceFile = open('dice.csv','wb')
+wDice = csv.writer(diceFile,delimiter=',',quoting=csv.QUOTE_NONE)
+jaccardFile = open('jaccard.csv','wb')
+wJaccard = csv.writer(jaccardFile,delimiter=',',quoting=csv.QUOTE_NONE)
+madFile = open('mad.csv','wb')
+wMad = csv.writer(madFile,delimiter=',',quoting=csv.QUOTE_NONE)
+hdFile = open('hd.csv','wb')
+wHd = csv.writer(hdFile,delimiter=',',quoting=csv.QUOTE_NONE)
+itrFile = open('itr.csv','wb')
+wItr = csv.writer(itrFile,delimiter=',',quoting=csv.QUOTE_NONE)
+timeFile = open('time.csv','wb')
+wTime = csv.writer(timeFile,delimiter=',',quoting=csv.QUOTE_NONE)
 
 # indices = [0,3,6,7,8,9]
 
@@ -762,51 +763,51 @@ for ind in indices:
         except:
             continue
 
-    func.displayMontageRGB(fixedImg,255*bpVol,3)
-    func.displayMontageRGB(fixedImg,255*bpVolSmooth,3)
+    # func.displayMontageRGB(fixedImg,255*bpVol,3)
+    # func.displayMontageRGB(fixedImg,255*bpVolSmooth,3)
     # func.displayMontageRGB(255*fixedGT,255*bpVol,3)
     # func.displayMontageRGB(fixedImg,255*bpProb,5)
     # func.displayMontageRGB(fixedImg,255*bpProbOriginal,5)
     # func.displayMontageRGB(fixedImg,fixedGT,5)
     print('')
 
-    # # Save image as Nifti
-    # scalingArray = np.eye(4)
-    # scalingArray[0,0] = spacingFixed[0]
-    # scalingArray[1,1] = spacingFixed[1]
-    # scalingArray[2,2] = spacingFixed[2]
-    # niftiSegmented = nib.Nifti1Image(bpVolSmooth,scalingArray)
-    # nib.save(niftiSegmented, 'SegmentedVolume.nii')
-    # niftiGroundTruth = nib.Nifti1Image(fixedGT,scalingArray)
-    # nib.save(niftiGroundTruth, 'GroundTruth.nii')
-    # niftiVolume = nib.Nifti1Image(fixedImg,scalingArray)
-    # nib.save(niftiVolume, 'Volume.nii')
-
-################# Compute the results #########################################
-    # Moving Volume
-#    execTime[ind] = time.time()-startTime
-#    indNZ = np.nonzero(fixedGT)
-#    startInd = (np.min(indNZ,axis=1)).astype(int)
-#    endInd = (np.max(indNZ,axis=1)).astype(int)+1
+#     # Save image as Nifti
+#     scalingArray = np.eye(4)
+#     scalingArray[0,0] = spacingFixed[0]
+#     scalingArray[1,1] = spacingFixed[1]
+#     scalingArray[2,2] = spacingFixed[2]
+#     niftiSegmented = nib.Nifti1Image(bpVolSmooth,scalingArray)
+#     nib.save(niftiSegmented, 'SegmentedVolume'+str(ind)+'.nii')
+#     niftiGroundTruth = nib.Nifti1Image(fixedGT,scalingArray)
+#     nib.save(niftiGroundTruth, 'GroundTruth'+str(ind)+'.nii')
+#     niftiVolume = nib.Nifti1Image(fixedImg,scalingArray)
+#     nib.save(niftiVolume, 'Volume'+str(ind)+'.nii')
 #
-#    gtImage = fixedGT[:,:,startInd[2]:endInd[2]]
-#    segImage = bpVol[:,:,startInd[2]:endInd[2]]
-#    func.displayMontageRGB(255*gtImage,255*segImage,5)
-#    
-#    (dice,jaccard,_,_,_,_) = func.evaluateMetrics(gtImage,segImage,option='union')
-#    (dice,jaccard,_,_,_,_) = func.evaluateMetrics(fixedGT,bpVol,option='union')
-#    MAD = ()
-#    HD = ()
-#    for k in range(fixedGT.shape[2]):
-#        mad,hd = evalDistances(fixedGT[:,:,k],bpVol[:,:,k],spacingFixed)
-#        MAD = MAD+(mad,)
-#        HD = HD+(hd,)
-#    wDice.writerow(dice)
-#    wJaccard.writerow(jaccard)
-#    wMad.writerow(MAD)
-#    wHd.writerow(HD)
-#    wItr.writerow(numOfIterations)
-
+# ################# Compute the results #########################################
+#     # Moving Volume
+#     execTime[ind] = time.time()-startTime
+#     indNZ = np.nonzero(fixedGT)
+#     startInd = (np.min(indNZ,axis=1)).astype(int)
+#     endInd = (np.max(indNZ,axis=1)).astype(int)+1
+#
+#     gtImage = fixedGT[:,:,startInd[2]:endInd[2]]
+#     segImage = bpVol[:,:,startInd[2]:endInd[2]]
+#     func.displayMontageRGB(255*gtImage,255*segImage,5)
+#
+#     # (dice,jaccard,_,_,_,_) = func.evaluateMetrics(gtImage,segImage,option='union')
+#     (dice,jaccard,_,_,_,_) = func.evaluateMetrics(fixedGT,bpVol,option='union')
+#     MAD = ()
+#     HD = ()
+#     for k in range(fixedGT.shape[2]):
+#         mad,hd = evalDistances(fixedGT[:,:,k],bpVol[:,:,k],spacingFixed)
+#         MAD = MAD+(mad,)
+#         HD = HD+(hd,)
+#     wDice.writerow(dice)
+#     wJaccard.writerow(jaccard)
+#     wMad.writerow(MAD)
+#     wHd.writerow(HD)
+#     wItr.writerow(numOfIterations)
+#
 # wTime.writerow(execTime)
 # diceFile.close()
 # jaccardFile.close()

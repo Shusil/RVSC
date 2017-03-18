@@ -623,7 +623,7 @@ def findEvaluationMask(refGT):
     refGT = refGT>=0.5
     mask = np.zeros(refGT.shape)
     if(np.sum(refGT.ravel())>0):
-        props = measure.regionprops(refGT)
+        props = measure.regionprops(refGT*1)
         r = props[0].equivalent_diameter/8
         mask = skmorph.binary_dilation(refGT,selem=skmorph.disk(r))
     return(mask)
