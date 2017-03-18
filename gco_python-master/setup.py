@@ -4,7 +4,7 @@ from Cython.Distutils import build_ext
 import os
 import numpy
 
-gco_directory = "gco_src"
+gco_directory = "gco-v3.0"
 
 files = ['GCoptimization.cpp', 'graph.cpp', 'LinkedBlockList.cpp',
          'maxflow.cpp']
